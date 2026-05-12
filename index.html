@@ -97,4 +97,23 @@ function quizMode() {
             <button class="btn btn-audio" onclick="speak('${item.生詞}')">📢 聽發音</button>
         </div>
         <button class="btn" onclick="alert('答案是：'+'${item.定義}')">顯示答案</button>
-        <button class="btn back-btn" onclick="showLevels()">結束測
+        <button class="btn back-btn" onclick="showLevels()">結束測驗</button>
+    `;
+}
+
+// 7. 語音功能
+function speak(text) {
+    if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance();
+        msg.text = text;
+        msg.lang = 'zh-TW';
+        msg.rate = 0.8;
+        window.speechSynthesis.speak(msg);
+    } else {
+        alert("您的瀏覽器不支援語音功能");
+    }
+}
+</script>
+
+</body>
+</html>
