@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>華語生詞平台</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        input { padding: 10px; width: 80%; font-size: 18px; margin-bottom: 20px; }
+        .card { border-bottom: 1px solid #ccc; padding: 10px; }
+        .word { font-size: 20px; font-weight: bold; color: blue; }
+    </style>
+</head>
+<body>
+    <h1>我的華語生詞平台</h1>
+    <input type="text" id="box" placeholder="輸入中文搜尋...">
+    <div id="list">正在載入 8000 詞...</div>
+
+    <script>
+        let data = [];
+        // 直接找同一個地方的 vocab.json，不進資料夾
+        fetch('8000.json')
+            .then(res => res.json())
+            .then(json => {
+                data = json;
+                show(data.slice(0, 10)); // 先顯示前 10 個詞
+                document.getElementById('list').innerHTML = "資料載入成功！共有 " + data.length + " 個詞。";
+            })
+            .catch(err => alert("找不到 vocab.json，請確認檔案在最外面且檔名正確！"));
+
+        function show(list) {
+            const div = document.getElementById('list');
+            div.innerHTML = list.map(item => `
+                <div class="card">
+                    <div class="word">${item.生詞} (${item.拼音})</div>
+                    <div>定義：${item.定義}</div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('box').oninput = function(e) {
+            const key = e.target.value;
+            const result = data.filter(item => item.生詞.includes(key));
+            show(result.slice(0, 50)); // 顯示搜尋的前 50 個結果
+        };
+    </script>
+</body>
+</html>
