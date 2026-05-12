@@ -104,13 +104,14 @@ function quizMode() {
 // 7. 語音功能
 function speak(text) {
     if ('speechSynthesis' in window) {
+        // 先停止之前的聲音，避免卡住
+        window.speechSynthesis.cancel(); 
+        
         const msg = new SpeechSynthesisUtterance();
         msg.text = text;
-        msg.lang = 'zh-TW';
+        msg.lang = 'zh-CHT'; // 試試看換成這個標準繁體代碼
         msg.rate = 0.8;
         window.speechSynthesis.speak(msg);
-    } else {
-        alert("您的瀏覽器不支援語音功能");
     }
 }
 </script>
