@@ -1,47 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>華語生詞平台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>華語學習平台</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        input { padding: 10px; width: 80%; font-size: 18px; margin-bottom: 20px; }
-        .card { border-bottom: 1px solid #ccc; padding: 10px; }
-        .word { font-size: 20px; font-weight: bold; color: blue; }
+        :root { --primary: #4a90e2; --bg: #f8f9fa; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; background: var(--primary); color: white; font-size: 18px; cursor: pointer; }
+        .btn-unit { background: #5c6bc0; }
+        .card { border: 2px solid #eee; padding: 20px; text-align: center; margin-top: 20px; }
+        .word { font-size: 40px; color: #2c3e50; }
+        .hidden { display: none; }
+        .back-btn { background: #666; font-size: 14px; width: auto; padding: 5px 15px; }
     </style>
 </head>
 <body>
-    <h1>我的華語生詞平台</h1>
-    <input type="text" id="box" placeholder="輸入中文搜尋...">
-    <div id="list">正在載入 8000 詞...</div>
 
-    <script>
-        let data = [];
-        // 直接找同一個地方的 vocab.json，不進資料夾
-        fetch('8000生詞.json')
-            .then(res => res.json())
-            .then(json => {
-                data = json;
-                show(data.slice(0, 10)); // 先顯示前 10 個詞
-                document.getElementById('list').innerHTML = "資料載入成功！共有 " + data.length + " 個詞。";
-            })
-            .catch(err => alert("找不到 vocab.json，請確認檔案在最外面且檔名正確！"));
+<div class="container" id="app">
+    <h1 id="title">華語學習等級</h1>
+    <div id="content">正在載入 8000 詞資料...</div>
+</div>
 
-        function show(list) {
-            const div = document.getElementById('list');
-            div.innerHTML = list.map(item => `
-                <div class="card">
-                    <div class="word">${item.生詞} (${item.拼音})</div>
-                    <div>定義：${item.定義}</div>
-                </div>
-            `).join('');
-        }
+<script>
+let allData = [];
+let currentList = [];
 
-        document.getElementById('box').oninput = function(e) {
-            const key = e.target.value;
-            const result = data.filter(item => item.生詞.includes(key));
-            show(result.slice(0, 50)); // 顯示搜尋的前 50 個結果
-        };
-    </script>
+// 1. 載入資料
+fetch('vocab.json')
+    .then(res => res.json())
+    .then(data => {
+        allData = data;
+        showLevels();
+    });
+
+// 2. 顯示等級介面
+function showLevels() {
+    const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
+    document.getElementById('title').innerText = "請選擇等級";
+    let html = levels.map(lv => `<button class="btn" onclick="showUnits('${lv}')">${lv} 等級</button>`).join('');
+    document.getElementById('content').innerHTML = html;
+}
+
+// 3. 顯示單元介面 (根據領域)
+function showUnits(lv) {
+    const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
+    const units = [...new Set(filtered.map(item => item.領域))];
+    document.getElementById('title').innerText = lv + " 選擇單元";
+    let html = `<button class="btn back-btn" onclick="showLevels()">返回等級</button>`;
+    html += units.map(u => `<button class="btn btn-unit" onclick="startUnit('${lv}', '${u}')">${u}</button>`).join('');
+    document.getElementById('content').innerHTML = html;
+}
+
+// 4. 開始單元 (複習與測驗選單)
+function startUnit(lv, u) {
+    currentList = allData.filter(item => item.序號編碼.startsWith(lv) && item.領域 === u);
+    document.getElementById('title').innerText = u;
+    document.getElementById('content').innerHTML = `
+        <button class="btn back-btn" onclick="showUnits('${lv}')">返回單元</button>
+        <button class="btn" onclick="studyMode()">📖 生詞複習</button>
+        <button class="btn" onclick="quizMode()">📝 華語測驗</button>
+    `;
+}
+
+// 5. 生詞複習模式
+function studyMode() {
+    let index = 0;
+    const updateCard = () => {
+        const item = currentList[index];
+        document.getElementById('content').innerHTML = `
+            <button class="btn back-btn" onclick="showLevels()">結束複習</button>
+            <div class="card">
+                <div class="word">${item.生詞}</div>
+                <div class="pinyin">${item.拼音}</div>
+                <hr>
+                <div class="def">${item.定義}</div>
+            </div>
+            <button class="btn" onclick="next()">下一個 (${index + 1}/${currentList.length})</button>
+        `;
+    };
+    window.next = () => { index = (index + 1) % currentList.length; updateCard(); };
+    updateCard();
+}
+
+// 6. 測驗模式 (簡單範例)
+function quizMode() {
+    const item = currentList[Math.floor(Math.random() * currentList.length)];
+    document.getElementById('title').innerText = "測驗：這是什麼意思？";
+    document.getElementById('content').innerHTML = `
+        <div class="card"><div class="word">${item.生詞}</div></div>
+        <button class="btn" onclick="alert('答案是：'+'${item.定義}')">顯示答案</button>
+        <button class="btn back-btn" onclick="showLevels()">結束測驗</button>
+    `;
+}
+</script>
+
 </body>
 </html>
