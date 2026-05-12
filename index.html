@@ -82,6 +82,7 @@ function studyMode() {
     };
     window.next = () => { index = (index + 1) % currentList.length; updateCard(); };
     updateCard();
+    <button class="btn btn-audio" onclick="speak('${item.生詞}')">📢 播放語音</button>
 }
 
 // 6. 測驗模式 (簡單範例)
@@ -93,6 +94,20 @@ function quizMode() {
         <button class="btn" onclick="alert('答案是：'+'${item.定義}')">顯示答案</button>
         <button class="btn back-btn" onclick="showLevels()">結束測驗</button>
     `;
+}
+
+// --- 這是新加入的語音功能 ---
+function speak(text) {
+    // 檢查瀏覽器是否支援語音
+    if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance();
+        msg.text = text;
+        msg.lang = 'zh-TW'; // 設定為台灣華語發音
+        msg.rate = 0.8;      // 稍微放慢語速，方便學生聽清楚
+        window.speechSynthesis.speak(msg);
+    } else {
+        alert("您的瀏覽器不支援語音功能");
+    }
 }
 </script>
 
