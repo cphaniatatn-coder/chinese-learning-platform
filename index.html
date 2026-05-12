@@ -4,118 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>華語學習平台</title>
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container" id="app">
     <h1 id="title">華語學習等級</h1>
-    <div id="content">正在載入 8000 詞資料...</div>
+    <div id="content">正在載入資料...</div>
 </div>
 
-<script>
-let allData = [];
-let currentList = [];
-
-// 1. 載入資料
-fetch('8000生詞.json')
-    .then(res => res.json())
-    .then(data => {
-        allData = data;
-        showLevels();
-    });
-
-// 2. 顯示等級介面
-function showLevels() {
-    const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
-    document.getElementById('title').innerText = "請選擇等級";
-    let html = levels.map(lv => `<button class="btn" onclick="showUnits('${lv}')">${lv} 等級</button>`).join('');
-    document.getElementById('content').innerHTML = html;
-}
-
-// 3. 顯示單元介面 (根據領域)
-function showUnits(lv) {
-    const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
-    const units = [...new Set(filtered.map(item => item.領域))];
-    document.getElementById('title').innerText = lv + " 選擇單元";
-    let html = `<button class="btn back-btn" onclick="showLevels()">返回等級</button>`;
-    html += units.map(u => `<button class="btn btn-unit" onclick="startUnit('${lv}', '${u}')">${u}</button>`).join('');
-    document.getElementById('content').innerHTML = html;
-}
-
-// 4. 開始單元 (複習與測驗選單)
-function startUnit(lv, u) {
-    currentList = allData.filter(item => item.序號編碼.startsWith(lv) && item.領域 === u);
-    document.getElementById('title').innerText = u;
-    document.getElementById('content').innerHTML = `
-        <button class="btn back-btn" onclick="showUnits('${lv}')">返回單元</button>
-        <button class="btn" onclick="studyMode()">📖 生詞複習</button>
-        <button class="btn" onclick="quizMode()">📝 華語測驗</button>
-    `;
-}
-
-// 5. 生詞複習模式
-function studyMode() {
-    let index = 0;
-    const updateCard = () => {
-        const item = currentList[index];
-        document.getElementById('content').innerHTML = `
-            <button class="btn back-btn" onclick="showLevels()">結束複習</button>
-            <div class="card">
-                <div class="word">${item.生詞}</div>
-                <div class="pinyin">${item.拼音}</div>
-                <button class="btn btn-audio" onclick="speak('${item.生詞}')">📢 播放語音</button>
-                <hr>
-                <div class="def">${item.定義}</div>
-            </div>
-            <button class="btn" onclick="next()">下一個 (${index + 1}/${currentList.length})</button>
-        `;
-    };
-    window.next = () => { index = (index + 1) % currentList.length; updateCard(); };
-    updateCard();
-}
-
-// 6. 測驗模式
-function quizMode() {
-    const item = currentList[Math.floor(Math.random() * currentList.length)];
-    document.getElementById('title').innerText = "測驗：這是什麼意思？";
-    document.getElementById('content').innerHTML = `
-        <div class="card">
-            <div class="word">${item.生詞}</div>
-            <button class="btn btn-audio" onclick="speak('${item.生詞}')">📢 聽發音</button>
-        </div>
-        <button class="btn" onclick="alert('答案是：'+'${item.定義}')">顯示答案</button>
-        <button class="btn back-btn" onclick="showLevels()">結束測驗</button>
-    `;
-}
-
-// 7. 語音功能
-function speak(text) {
-    if ('speechSynthesis' in window) {
-        // 先停止之前的聲音
-        window.speechSynthesis.cancel(); 
-
-        const msg = new SpeechSynthesisUtterance();
-
-        // 【新增邏輯】：如果詞彙裡有斜線「/」，只取第一個詞
-        // 例如：「你/妳」會變成「你」；「他們/她們」會變成「他們」
-        let filteredText = text.split('/')[0];
-        
-        msg.text = filteredText;
-        msg.lang = 'zh-TW'; 
-        
-        // 【優化語速】：從 0.8 調慢到 0.6（數字越小越慢，1.0 是正常速度）
-        msg.rate = 0.6; 
-        
-        // 稍微調整音調，讓聲音聽起來更清楚
-        msg.pitch = 1.0; 
-
-        window.speechSynthesis.speak(msg);
-    } else {
-        alert("您的瀏覽器不支援語音功能");
-    }
-}
-</script>
+<script src="script.js"></script>
 
 </body>
 </html>
