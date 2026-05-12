@@ -104,14 +104,27 @@ function quizMode() {
 // 7. 語音功能
 function speak(text) {
     if ('speechSynthesis' in window) {
-        // 先停止之前的聲音，避免卡住
+        // 先停止之前的聲音
         window.speechSynthesis.cancel(); 
-        
+
         const msg = new SpeechSynthesisUtterance();
-        msg.text = text;
-        msg.lang = 'zh-CHT'; // 試試看換成這個標準繁體代碼
-        msg.rate = 0.8;
+
+        // 【新增邏輯】：如果詞彙裡有斜線「/」，只取第一個詞
+        // 例如：「你/妳」會變成「你」；「他們/她們」會變成「他們」
+        let filteredText = text.split('/')[0];
+        
+        msg.text = filteredText;
+        msg.lang = 'zh-TW'; 
+        
+        // 【優化語速】：從 0.8 調慢到 0.6（數字越小越慢，1.0 是正常速度）
+        msg.rate = 0.6; 
+        
+        // 稍微調整音調，讓聲音聽起來更清楚
+        msg.pitch = 1.0; 
+
         window.speechSynthesis.speak(msg);
+    } else {
+        alert("您的瀏覽器不支援語音功能");
     }
 }
 </script>
