@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>華語 8000 詞搜尋平台</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .search-box { margin-bottom: 20px; }
+        input { padding: 10px; width: 300px; font-size: 16px; }
+        .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+        .id { color: #888; font-size: 12px; }
+        .word { font-size: 24px; color: #2c3e50; font-weight: bold; }
+        .tag { background: #e1f5fe; color: #01579b; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>華語生詞搜尋平台 (原型)</h1>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="輸入生詞、拼音或定義...">
+    </div>
+    <div id="results">正在載入詞庫...</div>
+
+    <script>
+        let vocabData = [];
+
+        // 讀取您上傳的 JSON
+        fetch('data/vocab.json')
+            .then(response => response.json())
+            .then(data => {
+                vocabData = data;
+                displayResults(vocabData);
+            });
+
+        function displayResults(data) {
+            const container = document.getElementById('results');
+            container.innerHTML = data.map(item => `
+                <div class="card">
+                    <div class="id">${item.序號編碼} | ${item.領域}</div>
+                    <div class="word">${item.生詞} <span style="font-size: 16px; font-weight: normal;">(${item.拼音})</span></div>
+                    <div><strong>詞性:</strong> ${item.詞性 || 'N/A'}</div>
+                    <div><strong>定義:</strong> ${item.定義}</div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = vocabData.filter(item => 
+                item.生詞.includes(term) || 
+                item.拼音.toLowerCase().includes(term) || 
+                item.定義.toLowerCase().includes(term)
+            );
+            displayResults(filtered);
+        });
+    </script>
+</body>
+</html>
