@@ -79,7 +79,7 @@ function checkAnswer(userPick, correct) {
 function speak(text) {
     window.speechSynthesis.cancel();
     const msg = new SpeechSynthesisUtterance(text);
-    msg.lang = 'zh-CN';
+    msg.lang = 'zh-TW';
     msg.rate = 0.8;
     window.speechSynthesis.speak(msg);
 }
