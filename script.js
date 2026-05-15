@@ -3,17 +3,17 @@ let quizData = [];
 let currentList = [];
 let isHintEnabled = false;
 
-// 1. 載入資料
+// 1. 同時載入資料邏輯
 Promise.all([
     fetch('8000生詞.json').then(res => res.json()),
     fetch('output.json').then(res => res.json())
 ]).then(([data1, data2]) => {
     allData = data1;
     quizData = data2;
-    showLevels();
+    showLevels(); 
 }).catch(err => { console.error("載入失敗"); });
 
-// 2. 等級選單
+// 2. 顯示等級介面 (原本沒變的 code)
 function showLevels() {
     const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
     document.getElementById('title').innerText = "請選擇學習等級";
@@ -21,7 +21,7 @@ function showLevels() {
     document.getElementById('content').innerHTML = html;
 }
 
-// 3. 單元選單
+// 3. 顯示單元介面 (原本沒變的 code)
 function showUnits(lv) {
     const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
     const units = [...new Set(filtered.map(item => item.領域))];
@@ -38,7 +38,7 @@ function showMenu(lv, u) {
     document.getElementById('content').innerHTML = `
         <button class="btn back-btn" onclick="showUnits('${lv}')">← 返回單元</button>
         <button class="btn" style="background:#4a90e2" onclick="showText()">📖 課文內容</button>
-        <button class="btn" style="background:#e67e22" onclick="studyMode()">🗂️ 生詞閃卡 (Flashcard)</button>
+        <button class="btn" style="background:#4a90e2" onclick="studyMode()">🗂️ 生詞複習</button>
         <button class="btn" style="background:#4a90e2" onclick="showGrammar()">💡 語法教學</button>
         <button class="btn" style="background:#5c6bc0" onclick="quizMode()">📝 能力測驗</button>
     `;
@@ -59,50 +59,23 @@ function showText() {
     `;
 }
 
-// 🚀 6. 模組二：生詞閃卡 (Flashcard 智慧翻牌版)
+// 🗂️ 6. 生詞複習模式 (完全恢復您原本寫好、最習慣的基礎排版與功能，絕無刪除)
 function studyMode() {
     let index = 0;
-    let isFlipped = false; // 記錄目前字卡是正面還是反面
-
     const updateCard = () => {
         const item = currentList[index];
-        isFlipped = false; // 換下一張卡時，預設回到正面(蓋牌狀態)
-
         document.getElementById('content').innerHTML = `
             <button class="btn back-btn" onclick="showMenu()">← 返回選單</button>
-            
-            <div class="flashcard" id="card-body" onclick="flipCard()">
+            <div class="card" onmouseover="showTooltip(event, '${item.生詞}')" onmouseout="hideTooltip()">
                 <div class="word">${item.生詞}</div>
-                <div id="card-back" style="display: none; width: 100%; text-align: center;">
-                    <div class="pinyin">${item.拼音}</div>
-                    <div class="def">${item.定義}</div>
-                </div>
-                <div class="flashcard-hint" id="card-tip">👆 點擊卡片翻面看答案</div>
+                <div class="pinyin">${item.拼音}</div>
+                <button class="btn" style="background:#4caf50" onclick="speak('${item.生詞}')">📢 播放語音</button>
+                <hr>
+                <div class="def">${item.定義}</div>
             </div>
-
-            <button class="btn" style="background:#4caf50; margin-bottom: 20px;" onclick="speak('${item.生詞}'); event.stopPropagation();">📢 聽發音</button>
             <button class="btn" onclick="next()">下一個 (${index + 1}/${currentList.length})</button>
         `;
     };
-
-    // 翻牌的邏輯
-    window.flipCard = () => {
-        isFlipped = !isFlipped;
-        const cardBack = document.getElementById('card-back');
-        const cardTip = document.getElementById('card-tip');
-        const cardBody = document.getElementById('card-body');
-
-        if (isFlipped) {
-            cardBack.style.display = "block"; // 顯示拼音和定義
-            cardTip.innerText = "✨ 已翻面";
-            cardBody.style.background = "#fffdf7"; // 翻面後換個柔和的底色
-        } else {
-            cardBack.style.display = "none";  // 隱藏
-            cardTip.innerText = "👆 點擊卡片翻面看答案";
-            cardBody.style.background = "#ffffff";
-        }
-    };
-
     window.next = () => { index = (index + 1) % currentList.length; updateCard(); };
     updateCard();
 }
@@ -120,7 +93,7 @@ function showGrammar() {
     `;
 }
 
-// 8. 測驗模式 (對接您的 output.json)
+// 8. 測驗模式 (原本沒變的 code)
 function quizMode() {
     const q = quizData[Math.floor(Math.random() * quizData.length)];
     document.getElementById('content').innerHTML = `
@@ -137,25 +110,37 @@ function quizMode() {
     `;
 }
 
-// 9. 工具功能
+// 9. 語音功能 (保留 zh-CN，語速 0.8。並加上解決「你/妳」只唸一次的切分邏輯)
 function speak(text) {
     window.speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(text);
+    const msg = new SpeechSynthesisUtterance();
+    
+    // 遇到斜線「你/妳」，只保留斜線前面的字拿去唸
+    let cleanText = text.split('/')[0];
+    
+    msg.text = cleanText;
     msg.lang = 'zh-CN';
     msg.rate = 0.8;
     window.speechSynthesis.speak(msg);
 }
 
+// 10. 提示開關功能
 function toggleHint() {
     isHintEnabled = !isHintEnabled;
     const btn = document.getElementById('hint-toggle');
     if(btn) btn.innerText = isHintEnabled ? "💡 提示：啟動中" : "💡 提示：關閉中";
 }
 
+// 11. 智慧提示邏輯 (對比生詞庫時，自動將生詞表中的「你/妳」拆開來比對，避免重複顯示)
 function smartSearchHint(event, text) {
     if (!isHintEnabled) return;
     const cleanText = text.replace(/[？?。，,！!]/g, "");
-    const found = allData.find(d => cleanText.includes(d.生詞.split('/')[0]));
+    
+    const found = allData.find(d => {
+        const wordToCheck = d.生詞.split('/')[0];
+        return cleanText.includes(wordToCheck);
+    });
+    
     if (found) {
         const tooltip = document.getElementById('tooltip');
         tooltip.innerHTML = `<b>${found.生詞}</b><br>${found.拼音}<br>${found.定義}`;
@@ -163,6 +148,11 @@ function smartSearchHint(event, text) {
         tooltip.style.left = (event.pageX + 10) + 'px';
         tooltip.style.top = (event.pageY + 10) + 'px';
     }
+}
+
+// 您原本的懸浮提示輔助函數
+function showTooltip(event, wordText) {
+    smartSearchHint(event, wordText);
 }
 
 function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
