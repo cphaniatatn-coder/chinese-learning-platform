@@ -1,13 +1,11 @@
 :root { 
     --primary: #4a90e2; 
-    --bg: #f8f9fa; 
-    --orange: #ff9800;
-    --green: #4caf50;
-    --dark: #2c3e50;
+    --success: #4caf50;
+    --bg: #f5f7fa; 
 }
 
 body { 
-    font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; 
+    font-family: 'PingFang TC', sans-serif; 
     background: var(--bg); 
     margin: 0; 
     padding: 20px; 
@@ -17,12 +15,10 @@ body {
     max-width: 600px; 
     margin: auto; 
     background: white; 
-    padding: 25px; 
-    border-radius: 15px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+    padding: 20px; 
+    border-radius: 16px; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05); 
 }
-
-h1 { text-align: center; color: var(--primary); }
 
 .btn { 
     display: block; 
@@ -30,56 +26,111 @@ h1 { text-align: center; color: var(--primary); }
     padding: 15px; 
     margin: 10px 0; 
     border: none; 
-    border-radius: 8px; 
+    border-radius: 10px; 
     background: var(--primary); 
     color: white; 
     font-size: 18px; 
     cursor: pointer; 
-    transition: 0.3s;
+    transition: 0.2s; 
+    font-weight: bold; 
 }
 
-.btn:hover { opacity: 0.9; }
-
-.btn-unit { background: #5c6bc0; }
-
-.btn-audio { 
-    background: var(--green); 
-    font-size: 16px; 
-    padding: 10px; 
+.btn:hover { 
+    opacity: 0.9; 
+    transform: translateY(-1px); 
 }
 
-.back-btn { background: #666; font-size: 14px; width: auto; padding: 5px 15px; margin-bottom: 10px; }
-
-/* 右上角提示開關 */
-#hint-toggle {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    z-index: 1000;
-    width: auto;
-    padding: 10px 15px;
-    background: var(--orange);
-    font-size: 14px;
-    border-radius: 50px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+.btn-unit { 
+    background: #5c6bc0; 
 }
 
-/* 懸浮生詞卡 Tooltip */
-.vocab-tooltip {
-    position: absolute;
-    display: none;
-    background: white;
-    border: 2px solid var(--primary);
-    padding: 15px;
+.back-btn { 
+    background: #78909c; 
+    font-size: 14px; 
+    width: auto; 
+    padding: 6px 18px; 
+    display: inline-block; 
+}
+
+.card {
+    border: 2px solid #eee; 
+    padding: 20px; 
+    text-align: center; 
+    margin-top: 20px;
+    background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    z-index: 2000;
-    width: 220px;
-    pointer-events: none; /* 避免滑鼠卡在卡片上 */
 }
 
-/* 卡片內部樣式 */
-.card { border: 2px solid #eee; padding: 25px; text-align: center; margin-top: 20px; border-radius: 10px; }
-.word { font-size: 45px; color: var(--dark); font-weight: bold; }
-.pinyin { color: #e67e22; font-size: 22px; margin: 10px 0; }
-.def { font-size: 18px; color: #7f8c8d; }
+/* 🚀 這是生詞閃卡 (Flashcard) 的翻牌效果設定（這是新加的，必須留著） */
+.flashcard {
+    background: #ffffff;
+    border: 2px solid #e0e6ed;
+    border-radius: 16px;
+    padding: 40px 20px;
+    text-align: center;
+    margin: 25px 0;
+    cursor: pointer;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+}
+
+.flashcard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(74,144,226,0.12);
+    border-color: var(--primary);
+}
+
+.flashcard .word { 
+    font-size: 48px; 
+    font-weight: bold; 
+    color: #2c3e50; 
+    margin-bottom: 10px; 
+}
+
+.flashcard .pinyin { 
+    font-size: 22px; 
+    color: #e67e22; 
+    margin-bottom: 15px; 
+    font-weight: 500; 
+}
+
+.flashcard .def { 
+    font-size: 20px; 
+    color: #7f8c8d; 
+    border-top: 1px dashed #e0e6ed; 
+    padding-top: 15px; 
+    width: 80%; 
+}
+
+.flashcard-hint { 
+    font-size: 13px; 
+    color: #b0bec5; 
+    margin-top: 20px; 
+}
+
+/* 右上角開關與提示框樣式 */
+#hint-toggle { 
+    position: fixed; 
+    top: 15px; 
+    right: 15px; 
+    z-index: 1000; 
+    width: auto; 
+    padding: 10px 15px; 
+    background: #ff9800; 
+}
+
+.vocab-tooltip { 
+    position: absolute; 
+    display: none; 
+    background: white; 
+    border: 2px solid var(--primary); 
+    padding: 12px; 
+    border-radius: 8px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15); 
+    z-index: 2000; 
+}
