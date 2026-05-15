@@ -13,7 +13,7 @@ Promise.all([
     showLevels(); 
 }).catch(err => { console.error("載入失敗"); });
 
-// 2. 顯示等級介面 (原本沒變的 code)
+// 2. 顯示等級介面
 function showLevels() {
     const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
     document.getElementById('title').innerText = "請選擇學習等級";
@@ -21,7 +21,7 @@ function showLevels() {
     document.getElementById('content').innerHTML = html;
 }
 
-// 3. 顯示單元介面 (原本沒變的 code)
+// 3. 顯示單元介面
 function showUnits(lv) {
     const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
     const units = [...new Set(filtered.map(item => item.領域))];
@@ -59,7 +59,7 @@ function showText() {
     `;
 }
 
-// 🗂️ 6. 生詞複習模式 (完全恢復您原本寫好、最習慣的基礎排版與功能，絕無刪除)
+// 🗂️ 6. 生詞複習模式 (保留您最初始的排版，絕不改動)
 function studyMode() {
     let index = 0;
     const updateCard = () => {
@@ -93,7 +93,7 @@ function showGrammar() {
     `;
 }
 
-// 8. 測驗模式 (原本沒變的 code)
+// 8. 測驗模式
 function quizMode() {
     const q = quizData[Math.floor(Math.random() * quizData.length)];
     document.getElementById('content').innerHTML = `
@@ -110,18 +110,24 @@ function quizMode() {
     `;
 }
 
-// 9. 語音功能 (保留 zh-CN，語速 0.8。並加上解決「你/妳」只唸一次的切分邏輯)
+// 9. 語音功能 (⚡ 已優化防延遲機制)
 function speak(text) {
-    window.speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance();
-    
-    // 遇到斜線「你/妳」，只保留斜線前面的字拿去唸
-    let cleanText = text.split('/')[0];
-    
-    msg.text = cleanText;
-    msg.lang = 'zh-TW';
-    msg.rate = 0.8;
-    window.speechSynthesis.speak(msg);
+    if ('speechSynthesis' in window) {
+        // 強制連續中止兩次，徹底沖刷掉前一個聲音的快取，解決 Delay 
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel();
+
+        const msg = new SpeechSynthesisUtterance();
+        
+        // 快速過濾「你/妳」斜線邏輯
+        let cleanText = text.indexOf('/') !== -1 ? text.split('/')[0] : text;
+        
+        msg.text = cleanText;
+        msg.lang = 'zh-TW';
+        msg.rate = 0.8;
+        
+        window.speechSynthesis.speak(msg);
+    }
 }
 
 // 10. 提示開關功能
@@ -131,7 +137,7 @@ function toggleHint() {
     if(btn) btn.innerText = isHintEnabled ? "💡 提示：啟動中" : "💡 提示：關閉中";
 }
 
-// 11. 智慧提示邏輯 (對比生詞庫時，自動將生詞表中的「你/妳」拆開來比對，避免重複顯示)
+// 11. 智慧提示邏輯
 function smartSearchHint(event, text) {
     if (!isHintEnabled) return;
     const cleanText = text.replace(/[？?。，,！!]/g, "");
@@ -150,7 +156,6 @@ function smartSearchHint(event, text) {
     }
 }
 
-// 您原本的懸浮提示輔助函數
 function showTooltip(event, wordText) {
     smartSearchHint(event, wordText);
 }
