@@ -119,7 +119,7 @@ function speak(text) {
     let cleanText = text.split('/')[0];
     
     msg.text = cleanText;
-    msg.lang = 'zh-CN';
+    msg.lang = 'zh-TW';
     msg.rate = 0.8;
     window.speechSynthesis.speak(msg);
 }
