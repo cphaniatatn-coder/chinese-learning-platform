@@ -1,149 +1,150 @@
-let allData = [];     // 存放 8000生詞.json
-let currentList = []; // 當前選中單元的生詞
-let currentIndex = 0; // 目前讀到第幾張卡片
-let currentSpeed = 0.7; // 🌟 Default kecepatan lebih lambat (Anti-Gugup) untuk Band A
+// ==========================================
+// TAHAP 2: TES KOSAKATA (Generator Pilihan Ganda)
+// ==========================================
 
-// 1. 單純載入生詞檔案
-fetch('8000生詞.json')
-    .then(res => res.json())
-    .then(data => {
-        allData = data;
-        showLevelsMenu(); 
-    })
-    .catch(err => {
-        // Menggunakan selector container utama dari index.html Anda
-        document.getElementById('content').innerText = "生詞檔案載入失敗，請確認 8000生詞.json 是否正確上傳。";
-    });
-
-// 2. 顯示等級主選單
-function showLevelsMenu() {
-    // Memastikan judul diperbarui di dalam <h1 id="title">
-    document.getElementById('title').innerText = "華語學習等級";
-    
-    // Memilah level (A0, A1, A2) berdasarkan kode urut
-    const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
-    
-    let html = `<div id="menu-area">`;
-    html += levels.map(lv => `<button class="btn" onclick="showUnitsMenu('${lv}')">${lv} 等級</button>`).join('');
-    html += `</div>`;
-    
-    document.getElementById('content').innerHTML = html;
-}
-
-// 3. 顯示單元選單
-function showUnitsMenu(lv) {
-    document.getElementById('title').innerText = lv + " 單元選擇";
-    
-    const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
-    const units = [...new Set(filtered.map(item => item.領域))];
-    
-    let html = `<button class="btn back-btn" onclick="showLevelsMenu()">← 返回</button><br><br>`;
-    html += `<div id="menu-area">`;
-    html += units.map(u => `<button class="btn btn-unit" onclick="startLearning('${lv}', '${u}')">${u}</button>`).join('');
-    html += `</div>`;
-    
-    document.getElementById('content').innerHTML = html;
-}
-
-// 4. 进入学习模式 (Menerapkan Alur Konsep Anda)
-function startLearning(lv, u) {
-    currentList = allData.filter(item => item.序號編碼.startsWith(lv) && item.領域 === u);
+// Fungsi Utama untuk Memulai Tes Kosakata
+function startVocabTest() {
+    currentStage = 'vocab-test';
     currentIndex = 0;
-
-    if (currentList.length === 0) {
-        alert("此單元沒有找到任何生詞！");
-        return;
-    }
-
-    // Mengganti isi <div id="content"> menjadi layout Flashcard + Audio Speed Controller
-    generateFlashcardLayout();
-    updateCardContent(); 
-}
-
-// Fitur Baru: Membuat Layout yang mendukung Fitur Khusus Anda tanpa merusak index.html asli
-function generateFlashcardLayout() {
-    let html = `
-        <!-- Audio Speed Controller (Fitur Anti-Gugup) -->
-        <div style="text-align:center; margin-bottom: 15px;">
-            <span style="font-size:14px; color:#7f8c8d;">音速 Control: </span>
-            <button class="btn back-btn" onclick="changeSpeed(0.6)" id="speed-0.6">0.6x 慢速</button>
-            <button class="btn back-btn" onclick="changeSpeed(0.8)" id="speed-0.8" style="background:#4caf50;">0.8x 標準</button>
-            <button class="btn back-btn" onclick="changeSpeed(1.0)" id="speed-1.0">1.0x 考試</button>
-        </div>
-
-        <!-- Flashcard Base Layout -->
-        <div class="flashcard" onclick="toggleCardFlip()">
-            <div id="word-display" class="word">載入中...</div>
-            <div id="card-back-info" style="display:none; width:100%;">
-                <div id="pinyin-display" class="pinyin"></div>
-                <div id="def-display" class="def"></div>
-            </div>
-            <div id="counter-display" class="flashcard-hint">0 / 0</div>
-        </div>
-
-        <button id="speak-btn" class="btn" style="background:#ff9800;">🔊 發音</button>
-        <button class="btn" onclick="nextCard()">下一個生詞 →</button>
-        <button class="btn back-btn" onclick="showLevelsMenu()">← 返回選單</button>
-    `;
-    document.getElementById('content').innerHTML = html;
-}
-
-// 5. Mengubah Konten Kartu (Sisi Depan Dulu)
-function updateCardContent() {
-    const item = currentList[currentIndex];
-
-    // Reset kartu ke sisi depan setiap kali berganti kata (Prinsip Segmentasi)
-    document.getElementById('card-back-info').style.display = "none";
+    score = 0; // Reset skor latihan
     
-    document.getElementById('word-display').textContent = item.生詞;
-    document.getElementById('pinyin-display').textContent = item.拼音;
-    document.getElementById('def-display').textContent = item.定義;
-    document.getElementById('counter-display').textContent = `${currentIndex + 1} / ${currentList.length}`;
+    document.getElementById('quiz-step-label').innerText = "步驟二：生詞測試 (Latihan Soal)";
+    document.getElementById('quiz-prog-fill').style.width = "40%";
+    
+    // Menyembunyikan tombol "繼續" bawaan Claude selama kuis berlangsung
+    document.getElementById('quiz-next-btn').style.display = "none";
+    
+    renderVocabQuiz();
+}
 
-    // Otomatis putar audio pelafalan saat kartu ganti (Prinsip Modalitas)
-    speakChinese(item.生詞);
+// Fungsi untuk Merakit Pertanyaan dan Pilihan Jawaban
+function renderVocabQuiz() {
+    // Sembunyikan feedback jawaban sebelumnya
+    document.getElementById('quiz-feedback').innerHTML = "";
+    
+    const correctAnswerItem = currentList[currentIndex];
+    
+    // 1. Membuat daftar pilihan jawaban (1 Benar + 3 Pengecoh Acak)
+    let options = [correctAnswerItem];
+    
+    // Mengambil kata acak dari seluruh database JSON untuk dijadikan pengecoh
+    while (options.length < 4) {
+        const randomItem = allData[Math.floor(Math.random() * allData.length)];
+        // Memastikan kata pengecoh tidak kembar dan bukan kata yang benar
+        if (!options.some(opt => opt.生詞 === randomItem.生詞)) {
+            options.push(randomItem);
+        }
+    }
+    
+    // 2. Mengacak urutan tombol pilihan jawaban (Prinsip Edukasi)
+    options.sort(() => Math.random() - 0.5);
+    
+    // 3. Merakit instruksi dan layout kuis fungsional (Prinsip Koherensi: Tanpa gambar dekorasi)
+    document.getElementById('quiz-instruction').innerText = `請選擇正確的定義 (Pilihlah arti yang tepat untuk kata berikut):`;
+    
+    let html = `
+        <div style="text-align: center; margin: 20px 0;">
+            <!-- Menampilkan Hanzi dengan ukuran besar agar fokus visual siswa terjaga -->
+            <div style="font-size: 56px; font-weight: bold; color: #2c3e50; margin-bottom: 5px;">${correctAnswerItem.生詞}</div>
+            
+            <!-- Tombol pendengaran suara audio standar Taiwan untuk melatih aspek pendengaran -->
+            <button class="btn-outline" style="padding: 6px 15px; width: auto; display: inline-block; font-size: 14px;" onclick="speakChinese('${correctAnswerItem.生詞}')">🔊 聽發音 (Dengar Suara)</button>
+        </div>
 
-    document.getElementById('speak-btn').onclick = function(e) {
-        e.stopPropagation(); // Mencegah kartu nge-flip saat menekan tombol audio
-        speakChinese(item.生詞);
+        <!-- Kisi Tombol Pilihan Jawaban dari Desain Claude -->
+        <div class="quiz-choices" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            ${options.map(opt => `
+                <button class="btn-primary" style="background: white; color: #2c3e50; border: 2px solid #e0e6ed; width: 100%; text-align: left; padding: 15px;" 
+                        onclick="checkVocabAnswer('${opt.生詞}', '${correctAnswerItem.生詞}')">
+                    ${opt.定義}
+                </button>
+            `).join('')}
+        </div>
+        
+        <div style="text-align: center; font-size: 13px; color: #b0bec5; margin-top: 15px;">
+            進度 (Progres): ${currentIndex + 1} / ${currentList.length} Soal
+        </div>
+    `;
+    
+    document.getElementById('dynamic-quiz-content').innerHTML = html;
+    speakChinese(correctAnswerItem.生詞); // Otomatis putar audio pelafalan
+}
+
+// Fungsi untuk Memeriksa Jawaban Siswa (Fitur Evaluasi Instan)
+function checkVocabAnswer(selectedWord, correctWord) {
+    const feedbackDiv = document.getElementById('quiz-feedback');
+    const choiceButtons = document.querySelectorAll('.quiz-choices button');
+    
+    // Mengunci semua tombol agar tidak bisa diklik dua kali setelah menjawab
+    choiceButtons.forEach(btn => btn.disabled = true);
+    
+    if (selectedWord === correctWord) {
+        // Jika jawaban Benar
+        score++;
+        feedbackDiv.innerHTML = `
+            <div style="background: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 10px; margin-top: 15px; font-weight: bold; text-align: center;">
+                ✅ 正確 (Benar)!
+            </div>
+        `;
+    } else {
+        // Jika jawaban Salah (Menerapkan Fitur Isyarat/Signaling)
+        feedbackDiv.innerHTML = `
+            <div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 10px; margin-top: 15px; font-weight: bold; text-align: center;">
+                ❌ 錯誤 (Salah)! <br/>
+                <span style="font-size: 13px; font-weight: normal; color: #555;">Kata yang benar adalah: <strong>${correctWord}</strong></span>
+            </div>
+        `;
+    }
+    
+    // Memunculkan kembali tombol "繼續" milik Claude untuk melangkah ke soal berikutnya
+    const nextBtn = document.getElementById('quiz-next-btn');
+    nextBtn.style.display = "block";
+    
+    // Mengatur tindakan tombol berikutnya
+    nextBtn.onclick = function() {
+        if (currentIndex < currentList.length - 1) {
+            currentIndex++;
+            renderVocabQuiz();
+            nextBtn.style.display = "none"; // Sembunyikan kembali sampai soal berikutnya dijawab
+        } else {
+            // Jika latihan soal sudah selesai, arahkan ke Tahap 3 (Grammar)
+            endVocabTestStage();
+        }
     };
 }
 
-// Fitur Baru: Simulasi Flip Card Sederhana namun Efektif
-function toggleCardFlip() {
-    const backInfo = document.getElementById('card-back-info');
-    if (backInfo.style.display === "none") {
-        backInfo.style.display = "block"; // Munculkan Pinyin dan Arti (Prinsip Kontiguitas Spasial)
-    } else {
-        backInfo.style.display = "none";
-    }
+// Fungsi Penutup Tahap 2 untuk Mengarahkan ke Tahap 3
+function endVocabTestStage() {
+    const accuracy = Math.round((score / currentList.length) * 100);
+    
+    document.getElementById('quiz-instruction').innerText = "🎉 Tahap latihan soal kosakata telah selesai!";
+    
+    document.getElementById('dynamic-quiz-content').innerHTML = `
+        <div style="background: #e8f4fd; padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #b3e5fc;">
+            <h3 style="color: #0288d1; margin-top: 0;">單元測試結果 (Hasil Latihan)</h3>
+            <p style="font-size: 16px; color: #555;">Anda berhasil menjawab benar <strong>${score}</strong> dari <strong>${currentList.length}</strong> kosakata.</p>
+            <p style="font-size: 24px; font-weight: bold; color: #0288d1; margin: 15px 0;">正確率 (Akurasi): ${accuracy}%</p>
+        </div>
+    `;
+    
+    const nextBtn = document.getElementById('quiz-next-btn');
+    nextBtn.style.display = "block";
+    nextBtn.innerText = "进入步骤三：語法學習 (Grammar) →";
+    nextBtn.onclick = startGrammarStage; // Hubungkan ke fungsi Tahap 3 selanjutnya
 }
 
-// Fitur Baru: Mengubah Kecepatan Audio secara Dinamis
-function changeSpeed(speed) {
-    currentSpeed = speed;
-    // Mengubah highlight warna tombol aktif
-    [0.6, 0.8, 1.0].forEach(s => {
-        document.getElementById(`speed-${s}`).style.background = (s === speed) ? "#4caf50" : "#78909c";
-    });
-}
-
-function nextCard() {
-    currentIndex = (currentIndex + 1) % currentList.length;
-    updateCardContent();
-}
-
-// ⚡ 8. Pengontrol Suara dengan Aksara Tradisional Taiwan (zh-TW)
-function speakChinese(text) {
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Menghentikan antrean suara sebelumnya (Zero Delay)
-
-        let cleanText = text.includes('/') ? text.split('/')[0] : text;
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'zh-TW'; // 🌟 DIUBAH KE TAIWAN: Sangat penting untuk akurasi TOCFL Band A
-        utterance.rate = currentSpeed; // 🌟 DINAMIS: Mengikuti kontrol kenyamanan siswa
-
-        window.speechSynthesis.speak(utterance);
-    }
+function startGrammarStage() {
+    // Tombol dikembalikan teks aslinya untuk kebutuhan navigasi umum
+    document.getElementById('quiz-next-btn').innerText = "繼續"; 
+    document.getElementById('quiz-next-btn').style.display = "none";
+    
+    document.getElementById('quiz-step-label').innerText = "步驟三：語法學習 (Grammar)";
+    document.getElementById('quiz-prog-fill').style.width = "60%";
+    
+    document.getElementById('dynamic-quiz-content').innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <p><em>[Tahap 3: Struktur Rumus Tata Bahasa Berdasarkan Analisis Personal Data Sedang Disiapkan]</em></p>
+            <button class="btn-primary full" onclick="showPage('page-dashboard')">返回主選單</button>
+        </div>
+    `;
 }
