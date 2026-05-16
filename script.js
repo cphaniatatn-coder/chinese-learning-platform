@@ -1,4 +1,224 @@
 // ==========================================
+// GLOBALS & STATE MANAGEMENT
+// ==========================================
+let allData = [];         // Menampung data dari JSON/data.js
+let currentList = [];     // Kosakata bab yang sedang aktif
+let currentIndex = 0;     // Index kata/soal saat ini
+let currentSpeed = 0.7;   // Default kecepatan audio (Anti-Gugup)
+let currentLevel = '';    // Level aktif (A0, A1, A2)
+let currentChapter = '';  // Bab aktif
+let currentStage = 'vocab'; // vocab, vocab-test, grammar, reading, final-test
+let score = 0;            // Menghitung jawaban benar saat tes
+
+// ==========================================
+// 1. INITIALIZATION & DATA LOADING
+// ==========================================
+// Memuat data saat aplikasi pertama kali dibuka
+window.onload = function() {
+    // Simulasi fetch data (atau bisa langsung membaca variabel jika memakai data.js)
+    fetch('8000生詞.json')
+        .then(res => res.json())
+        .then(data => {
+            allData = data;
+            // Menuju ke Landing Page bawaan Claude di awal
+            showPage('page-landing');
+        })
+        .catch(err => {
+            document.getElementById('dash-content').innerText = "Gagal memuat data kosakata. Pastikan berkas data sudah benar.";
+        });
+};
+
+// ==========================================
+// 2. NAVIGATION OVERRIDE (Single Page Application)
+// ==========================================
+function showPage(pageId) {
+    // Sembunyikan semua halaman dengan menghapus kelas 'active'
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    
+    // Tampilkan halaman yang dituju
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.add('active');
+    }
+
+    // Pemicu rendering konten jika masuk ke Dashboard
+    if (pageId === 'page-dashboard') {
+        showLevelsMenu();
+    }
+}
+
+// ==========================================
+// 3. DASHBOARD LOGIC (Sistem Level & Per Bab)
+// ==========================================
+// Menampilkan Pilihan Tingkat (A0, A1, A2)
+function showLevelsMenu() {
+    document.getElementById('dash-title').innerText = "請選擇學習等級 (Pilih Tingkat)";
+    
+    // Memilah level unik (A0, A1, A2)
+    const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
+    
+    let html = `<div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">`;
+    html += levels.map(lv => `<button class="btn-primary" style="width:100%;" onclick="showUnitsMenu('${lv}')">${lv} 等級 (Tingkat ${lv})</button>`).join('');
+    html += `</div>`;
+    
+    document.getElementById('dash-content').innerHTML = html;
+}
+
+// Menampilkan Pilihan Bab di dalam Level tersebut
+function showUnitsMenu(lv) {
+    currentLevel = lv;
+    document.getElementById('dash-title').innerText = lv + " 課程單元選擇 (Pilihan Bab)";
+    
+    const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
+    // Mengambil daftar Bab unik dari properti '單元' atau '領域'
+    const chapters = [...new Set(filtered.map(item => item.單元 || item.領域))];
+    
+    let html = `<button class="btn-outline" style="margin-bottom: 15px;" onclick="showLevelsMenu()">← 返回等級選單</button>`;
+    html += `<div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">`;
+    
+    html += chapters.map((chap, index) => {
+        return `<button class="btn-primary" style="background: #5c6bc0; width:100%;" onclick="startChapter('${lv}', '${chap}')">第 ${index + 1} 單元：${chap}</button>`;
+    }).join('');
+    
+    html += `</div>`;
+    
+    document.getElementById('dash-content').innerHTML = html;
+}
+
+// ==========================================
+// 4. MAIN LEARNING ENGINE (Alur Terintegrasi)
+// ==========================================
+function startChapter(lv, chap) {
+    currentChapter = chap;
+    // Filter kosakata khusus level dan bab aktif
+    currentList = allData.filter(item => {
+        const itemChap = item.單元 || item.領域;
+        return item.序號編碼.startsWith(lv) && itemChap === chap;
+    });
+    
+    if (currentList.length === 0) {
+        alert("Tidak ada kosakata di bab ini!");
+        return;
+    }
+
+    showPage('page-quiz'); // Pindah ke layar belajar utama Claude
+    startVocabStage();     // Mulai Tahap 1
+}
+
+// --- TAHAP 1: PENGENALAN KOSAKATA (Flashcard) ---
+function startVocabStage() {
+    currentStage = 'vocab';
+    currentIndex = 0;
+    document.getElementById('quiz-step-label').innerText = "步驟一：生詞學習 (Flashcard)";
+    document.getElementById('quiz-prog-fill').style.width = "20%";
+    document.getElementById('quiz-instruction').innerText = "單元：" + currentChapter + " | 請點擊字卡查看拼音與定義";
+    
+    renderFlashcardLayout();
+}
+
+function renderFlashcardLayout() {
+    const item = currentList[currentIndex];
+    
+    let html = `
+        <!-- Pengontrol Kecepatan Suara Taiwan (Anti-Gugup) -->
+        <div style="text-align:center; margin-bottom: 20px;">
+            <span style="font-size:13px; color:#7f8c8d;">音速 (Kecepatan Audio): </span>
+            <button class="btn-outline" style="padding: 4px 10px; width: auto; display: inline; font-size:12px;" onclick="changeSpeed(0.6)" id="spd-0.6">0.6x 慢速</button>
+            <button class="btn-outline" style="padding: 4px 10px; width: auto; display: inline; font-size:12px; background:#4caf50; color:white;" onclick="changeSpeed(0.8)" id="spd-0.8">0.8x 標準</button>
+            <button class="btn-outline" style="padding: 4px 10px; width: auto; display: inline; font-size:12px;" onclick="changeSpeed(1.0)" id="spd-1.0">1.0x 考試</button>
+        </div>
+
+        <!-- Struktur Flashcard (Prinsip Kontiguitas Spasial: Pinyin sembunyi sebelum diklik) -->
+        <div class="flashcard" style="border: 2px solid #e0e6ed; border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" onclick="toggleCardFlip()">
+            <div id="fc-word" style="font-size: 48px; font-weight: bold; color: #2c3e50;">${item.生詞}</div>
+            <div id="fc-back" style="display: none; width: 100%; margin-top: 10px;">
+                <div style="font-size: 22px; color: #e67e22; font-weight: 500; margin-bottom: 8px;">${item.拼音}</div>
+                <div style="font-size: 18px; color: #7f8c8d; border-top: 1px dashed #e0e6ed; padding-top: 8px;">${item.定義}</div>
+            </div>
+            <div style="font-size: 12px; color: #b0bec5; margin-top: 15px;">${currentIndex + 1} / ${currentList.length}</div>
+        </div>
+
+        <button class="btn-primary full" style="background:#ff9800; margin-top: 20px;" onclick="event.stopPropagation(); speakChinese('${item.生詞}')">🔊 Play Audio</button>
+        <button class="btn-primary full" style="margin-top: 10px;" onclick="nextCard()">下一個 (Berikutnya) →</button>
+    `;
+    
+    document.getElementById('dynamic-quiz-content').innerHTML = html;
+    speakChinese(item.生詞); // Otomatis putar pelafalan (Prinsip Modalitas)
+}
+
+function toggleCardFlip() {
+    const backSide = document.getElementById('fc-back');
+    if (backSide.style.display === "none") {
+        backSide.style.display = "block";
+    } else {
+        backSide.style.display = "none";
+    }
+}
+
+function nextCard() {
+    if (currentIndex < currentList.length - 1) {
+        currentIndex++;
+        renderFlashcardLayout();
+    } else {
+        // Jika kosakata sudah selesai semua, aktifkan tombol "繼續" bawaan Claude di bawah
+        document.getElementById('quiz-instruction').innerText = "🎉 Semua kosakata bab ini selesai dipelajari!";
+        const nextBtn = document.getElementById('quiz-next-btn');
+        nextBtn.style.display = "block";
+        nextBtn.onclick = startVocabTest; // Hubungkan ke alur Tahap 2 (Tes Kosakata)
+    }
+}
+
+// --- PENGONTROL AUDIO TAIWAN DENGAN KECEPATAN DINAMIS ---
+function changeSpeed(speed) {
+    currentSpeed = speed;
+    [0.6, 0.8, 1.0].forEach(s => {
+        const btn = document.getElementById(`spd-${s}`);
+        if (btn) {
+            if (s === speed) {
+                btn.style.background = "#4caf50";
+                btn.style.color = "white";
+            } else {
+                btn.style.background = "transparent";
+                btn.style.color = "#4a90e2";
+            }
+        }
+    });
+}
+
+function speakChinese(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Zero-Delay: Hentikan audio sebelumnya seketika
+        let cleanText = text.includes('/') ? text.split('/')[0] : text;
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'zh-TW'; // Aksentuasi asli Taiwan untuk standardisasi TOCFL
+        utterance.rate = currentSpeed;
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
+// --- EXIT NAVIGATION ---
+function exitQuiz() {
+    if (confirm("Apakah Anda yakin ingin keluar dari bab ini? Progres pengerjaan saat ini tidak disimpan.")) {
+        document.getElementById('quiz-next-btn').style.display = "none";
+        showPage('page-dashboard');
+    }
+}
+
+// Tahap 2: Tes Kosakata (Dapat dikembangkan logika pengacak/distractor selanjutnya di sini)
+function startVocabTest() {
+    document.getElementById('quiz-next-btn').style.display = "none";
+    document.getElementById('quiz-step-label').innerText = "步驟二：生詞測試 (Latihan Soal)";
+    document.getElementById('quiz-prog-fill').style.width = "40%";
+    
+    document.getElementById('dynamic-quiz-content').innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <p><em>[Tahap 2: Tes Kosakata Menjawab Keluhan Banyak Latihan di Kuisioner Sedang Aktif]</em></p>
+            <button class="btn-primary full" onclick="showPage('page-dashboard')">Kembali ke Dashboard</button>
+        </div>
+    `;
+}
+
+// ==========================================
 // TAHAP 2: TES KOSAKATA (Generator Pilihan Ganda)
 // ==========================================
 
