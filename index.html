@@ -1,22 +1,118 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>華語數位教材系統</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>華語數位教材系統 - TOCFL Band A</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <!-- Menggunakan font Noto Sans TC yang mendukung Aksara Tradisional Taiwan dengan rapi -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-    <button id="hint-toggle" class="btn" onclick="toggleHint()">💡 提示：關閉中</button>
+  <!-- 1. LANDING PAGE (Halaman Awal) -->
+  <div id="page-landing" class="page active">
+    <header class="landing-header">
+      <div class="logo">
+        <span class="logo-icon">🐉</span>
+        <span class="logo-text">華語學堂</span>
+      </div>
+      <nav class="landing-nav">
+        <button class="btn-outline" onclick="showPage('page-dashboard')">以訪客身分開始</button>
+      </nav>
+    </header>
+    
+    <main class="landing-main">
+      <div class="hero-text">
+        <h1>TOCFL Band A<br/><span class="highlight">高效數位學習系統</span></h1>
+        <p>基於多媒體學習原理設計的冲刺模組<br/>降低認知負荷，專注核心詞彙與語法</p>
+        <button class="btn-hero" onclick="showPage('page-dashboard')">立即開始學習 →</button>
+      </div>
+    </main>
+  </div>
 
-    <div class="container">
-        <h1 id="title">華語學習等級</h1>
-        <div id="content">載入中...</div>
+  <!-- 2. DASHBOARD (Menu Tingkat & Pemilihan Bab) -->
+  <div id="page-dashboard" class="page">
+    <aside class="sidebar">
+      <div class="sb-logo">🐉 <span>華語學堂</span></div>
+      <nav class="sb-nav">
+        <a class="sb-link active" onclick="showPage('page-dashboard')">📚 課程單元</a>
+      </nav>
+      <div class="sb-user">
+        <div class="sb-avatar">T</div>
+        <div class="sb-name">TOCFL 考生</div>
+        <div class="sb-level">Band A (A0-A2)</div>
+      </div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="dash-topbar">
+        <!-- Judul ini akan berubah dinamis lewat JS: Menu Level / Pilihan Bab -->
+        <h2 id="dash-title">請選擇學習等級</h2>
+      </div>
+      
+      <!-- Kontainer utama tempat menu Level dan Bab ditembakkan secara dinamis -->
+      <div class="home-grid" id="dash-content">
+        載入中...
+      </div>
+    </main>
+  </div>
+
+  <!-- 3. MAIN LEARNING & QUIZ PAGE (Wadah Alur Terintegrasi) -->
+  <div id="page-quiz" class="page">
+    <div class="quiz-header">
+      <button class="quiz-back" onclick="exitQuiz()">✕ 離開</button>
+      <div class="quiz-progress-wrap">
+        <!-- Indikator langkah alur belajar (Kosakata -> Tes -> Grammar -> Reading -> Tes Akhir) -->
+        <div class="quiz-prog-bar"><div class="quiz-prog-fill" id="quiz-prog-fill" style="width: 20%"></div></div>
+      </div>
+      <!-- Label penanda langkah aktif untuk scaffolding psikologis siswa -->
+      <div id="quiz-step-label" style="font-weight: bold; color: #4a90e2; font-size: 14px;">步驟一：生詞學習</div>
     </div>
 
-    <div id="tooltip" class="vocab-tooltip"></div>
+    <!-- Kontainer Inti: Isi di dalam sini akan berganti secara otomatis (Zero Delay) 
+         Mulai dari Flashcard, Pilihan Ganda, hingga teks Reading/Listening -->
+    <div class="quiz-body" id="quiz-body">
+      
+      <!-- Template Area dinamis yang akan dikontrol oleh app.js -->
+      <div class="quiz-q-label" id="quiz-instruction">請點擊字卡查看拼音與定義</div>
+      
+      <!-- Contoh komponen visual fungsional dari Claude yang kita pertahankan -->
+      <div id="dynamic-quiz-content">
+        <!-- JavaScript akan menembakkan Flashcard / Soal Ujian di sini -->
+      </div>
 
-    <script src="script.js"></script>
+      <div class="quiz-feedback" id="quiz-feedback"></div>
+      
+      <!-- Tombol Navigasi Alur Utama -->
+      <button class="btn-primary full quiz-cont" id="quiz-next-btn" style="display:none">繼續 →</button>
+    </div>
+  </div>
+
+  <!-- 4. RESULT PAGE (Halaman Evaluasi Akhir Bab) -->
+  <div id="page-result" class="page">
+    <div class="result-wrap">
+      <div class="result-emoji">🎉</div>
+      <h2 class="result-title">單元學習完成！</h2>
+      <p class="result-sub">你已成功完成本單元的所有培訓步驟。</p>
+      <div class="result-stats">
+        <div class="rs-card"><div class="rs-num" id="res-vocab-count">0</div><div class="rs-label">熟記詞彙</div></div>
+        <div class="rs-card"><div class="rs-num" id="res-accuracy">0%</div><div class="rs-label">測試正確率</div></div>
+      </div>
+      <div class="result-btns">
+        <button class="btn-outline" onclick="retryChapter()">重新複習</button>
+        <button class="btn-primary" onclick="showPage('page-dashboard')">返回單元選單</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. GLOBAL TOOLTIP COMPONENT -->
+  <!-- Komponen penting untuk menerapkan Prinsip Kontiguitas Spasial pada Reading Scaffolding.
+       Pinyin dan arti kata cerita hanya muncul di dekat kursor saat Hanzi di-hover -->
+  <div id="vocab-tooltip" class="vocab-tooltip" style="display: none; position: absolute; z-index: 9999;"></div>
+
+  <!-- Logika Sinkronisasi Data dan App -->
+  <script src="js/app.js"></script>
 </body>
 </html>
