@@ -11,70 +11,119 @@ let currentStage = 'vocab'; // Mengunci tahapan: vocab, vocab-test, grammar
 let score = 0;            // Nilai angka jawaban benar siswa saat tes
 
 // ==========================================
-// 1. INITIALIZATION & DATA LOADING (Dinamis dari JSON)
+// SYSTEM LOGGER (Fitur Deteksi Eror Otomatis)
+// ==========================================
+function logSystem(status, message, details = "") {
+    console.log(`%c[TOCFL SYSTEM - ${status}] ${message}`, 
+        status === 'SUCCESS' ? 'color: #2e7d32; font-weight: bold;' : 'color: #c62828; font-weight: bold;', 
+        details
+    );
+}
+
+// ==========================================
+// 1. INITIALIZATION & DATA LOADING
 // ==========================================
 window.onload = function() {
-    // Membaca file JSON eksternal agar Anda bebas memperbarui data kapan saja
+    logSystem('INFO', 'Memulai pemuatan file 8000生詞.json...');
+    
     fetch('8000生詞.json')
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             allData = data;
-            // Menuju ke Landing Page sebagai visualisasi awal aplikasi
+            logSystem('SUCCESS', `File JSON Berhasil Dimuat! Total data: ${allData.length} baris.`);
+            
+            // Verifikasi sampel properti data JSON Anda
+            if(allData.length > 0) {
+                logSystem('INFO', 'Sampel data baris pertama:', allData[0]);
+            }
+            
+            // Menuju ke Landing Page bawaan Claude
             showPage('page-landing');
         })
         .catch(err => {
+            logSystem('ERROR', 'GAGAL MEMUAT JSON! Periksa ekstensi file, koma menggantung, atau jalankan Live Server.', err.message);
             const contentDiv = document.getElementById('dash-content');
             if (contentDiv) {
-                contentDiv.innerText = "Gagal memuat data kosakata. Pastikan berkas 8000生詞.json Anda sudah diunggah.";
+                contentDiv.innerHTML = `<span style="color:red; font-weight:bold;">Eror Sistem: Gagal membaca file data. Pastikan Anda membuka proyek ini menggunakan "Live Server" di VS Code, bukan klik ganda file HTML.</span>`;
             }
         });
 };
 
 // ==========================================
-// 2. SPA NAVIGATION OVERRIDE (Manajemen Halaman Tanpa Delay)
+// 2. SPA NAVIGATION OVERRIDE
 // ==========================================
 function showPage(pageId) {
-    // Menyembunyikan semua kontainer halaman
-    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    logSystem('INFO', `Mencoba berpindah ke halaman: #${pageId}`);
     
-    // Menampilkan halaman yang dituju secara instan
     const targetPage = document.getElementById(pageId);
-    if (targetPage) {
-        targetPage.classList.add('active');
+    if (!targetPage) {
+        logSystem('ERROR', `Halaman #${pageId} TIDAK DITEMUKAN di index.html! Periksa apakah ID elemen Anda salah ketik.`);
+        return;
     }
 
-    // Jika pengguna menuju dasbor, otomatis panggil menu level utama
+    // Sembunyikan semua kontainer halaman
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    
+    // Tampilkan halaman target
+    targetPage.classList.add('active');
+    logSystem('SUCCESS', `Halaman #${pageId} sekarang Aktif.`);
+
+    // Jika masuk ke dashboard, render menu tingkat
     if (pageId === 'page-dashboard') {
         showLevelsMenu();
     }
 }
 
 // ==========================================
-// 3. DASHBOARD LOGIC (Kurikulum Sistem Per Bab)
+// 3. DASHBOARD LOGIC (Sistem Per Bab)
 // ==========================================
-// Menampilkan Menu Tingkat Ujian (A0, A1, A2)
 function showLevelsMenu() {
-    document.getElementById('dash-title').innerText = "請選擇學習等級 (Pilih Tingkat Ujian)";
+    const dashContent = document.getElementById('dash-content');
+    const dashTitle = document.getElementById('dash-title');
     
-    // Memotong kode urut untuk mendapatkan nama level unik
-    const levels = [...new Set(allData.map(item => item.序號編碼.split('-')[0]))];
+    if (!dashContent || !dashTitle) {
+        logSystem('ERROR', 'Elemen #dash-content atau #dash-title tidak ditemukan di index.html!');
+        return;
+    }
+
+    dashTitle.innerText = "請選擇學習等級 (Pilih Tingkat Ujian)";
     
-    let html = `<div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">`;
-    html += levels.map(lv => `<button class="btn-primary" style="width:100%;" onclick="showUnitsMenu('${lv}')">${lv} 等級 (Tingkat ${lv})</button>`).join('');
-    html += `</div>`;
-    
-    document.getElementById('dash-content').innerHTML = html;
+    try {
+        // Ekstraksi kode tingkat (A0, A1, A2) dari properti '序號編碼'
+        const levels = [...new Set(allData.map(item => {
+            if(!item.序號編碼) throw new Error("Ada data kosakata yang tidak memiliki properti '序號編碼'!");
+            return item.序號編碼.split('-')[0];
+        }))];
+        
+        let html = `<div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">`;
+        html += levels.map(lv => `<button class="btn-primary" style="width:100%;" onclick="showUnitsMenu('${lv}')">${lv} 等級 (Tingkat ${lv})</button>`).join('');
+        html += `</div>`;
+        
+        dashContent.innerHTML = html;
+        logSystem('SUCCESS', 'Menu tingkat ujian berhasil di-render.');
+    } catch (e) {
+        logSystem('ERROR', 'Gagal merakit menu tingkat. Format kolom "序號編碼" di JSON tidak sesuai standar.', e.message);
+        dashContent.innerHTML = `<span style="color:red;">Eror: Kolom properti "序號編碼" pada file JSON Anda hilang atau salah ketik.</span>`;
+    }
 }
 
-// Menampilkan Daftar Pilihan Bab Berdasarkan Tingkat yang Dipilih
 function showUnitsMenu(lv) {
     currentLevel = lv;
     document.getElementById('dash-title').innerText = lv + " 課程單元選擇 (Pilihan Bab)";
     
-    const filtered = allData.filter(item => item.序號編碼.startsWith(lv));
-    // Fallback sistem pembacaan properti '單元' atau nama '領域' yang lama
+    const filtered = allData.filter(item => item.序號編碼 && item.序號編碼.startsWith(lv));
+    // Mendukung properti '單元' atau '領域' agar fleksibel
     const chapters = [...new Set(filtered.map(item => item.單元 || item.領域))];
     
+    if (chapters.length === 0 || chapters[0] === undefined) {
+        logSystem('ERROR', `Gagal mendeteksi Bab untuk level ${lv}. Periksa kolom "單元" atau "領域" di JSON.`);
+        document.getElementById('dash-content').innerHTML = `<span style="color:red;">Eror: Properti nama bab ("單元" / "領域") tidak ditemukan dalam data level ini.</span>`;
+        return;
+    }
+
     let html = `<button class="btn-outline" style="margin-bottom: 15px;" onclick="showLevelsMenu()">← 返回等級選單</button>`;
     html += `<div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">`;
     
@@ -88,29 +137,28 @@ function showUnitsMenu(lv) {
 }
 
 // ==========================================
-// 4. MAIN LEARNING ENGINE (Alur Linear-Sistematis)
+// 4. MAIN LEARNING ENGINE
 // ==========================================
 function startChapter(lv, chap) {
     currentChapter = chap;
     
-    // Menyaring daftar kata yang masuk ke dalam bab aktif ini saja
     currentList = allData.filter(item => {
         const itemChap = item.單元 || item.領域;
-        return item.序號編碼.startsWith(lv) && itemChap === chap;
+        return item.序號編碼 && item.序號編碼.startsWith(lv) && itemChap === chap;
     });
+    
+    logSystem('INFO', `Memulai Bab: ${chap}. Total kosakata di bab ini: ${currentList.length} kata.`);
     
     if (currentList.length === 0) {
         alert("Tidak ada kosakata yang ditemukan untuk bab ini!");
         return;
     }
 
-    showPage('page-quiz'); // Masuk ke layar kuis terpadu milik Claude
-    startVocabStage();     // Eksekusi Tahap 1
+    showPage('page-quiz'); 
+    startVocabStage();     
 }
 
-// ------------------------------------------
-// TAHAP 1: PENGENALAN KOSAKATA (Flashcard)
-// ------------------------------------------
+// TAHAP 1: FLASHCARD
 function startVocabStage() {
     currentStage = 'vocab';
     currentIndex = 0;
@@ -118,8 +166,6 @@ function startVocabStage() {
     document.getElementById('quiz-step-label').innerText = "步驟一：生詞學習 (Flashcard)";
     document.getElementById('quiz-prog-fill').style.width = "20%";
     document.getElementById('quiz-instruction').innerText = `單元：${currentChapter} | 請點擊字卡查看拼音與定義`;
-    
-    // Pastikan tombol navigasi utama disembunyikan di awal kartu
     document.getElementById('quiz-next-btn').style.display = "none";
     
     renderFlashcardLayout();
@@ -127,9 +173,14 @@ function startVocabStage() {
 
 function renderFlashcardLayout() {
     const item = currentList[currentIndex];
+    const targetDiv = document.getElementById('dynamic-quiz-content');
+    
+    if (!targetDiv) {
+        logSystem('ERROR', 'Elemen #dynamic-quiz-content tidak ditemukan di index.html!');
+        return;
+    }
     
     let html = `
-        <!-- Pengontrol Kecepatan Suara Dinamis Taiwan -->
         <div style="text-align:center; margin-bottom: 20px;">
             <span style="font-size:13px; color:#7f8c8d;">音速 (Kecepatan Audio): </span>
             <button class="btn-outline" style="padding: 4px 10px; width: auto; display: inline; font-size:12px;" onclick="changeSpeed(0.6)" id="spd-0.6">0.6x 慢速</button>
@@ -137,12 +188,11 @@ function renderFlashcardLayout() {
             <button class="btn-outline" style="padding: 4px 10px; width: auto; display: inline; font-size:12px;" onclick="changeSpeed(1.0)" id="spd-1.0">1.0x 考試</button>
         </div>
 
-        <!-- Wadah Flashcard Berbalik (Prinsip Kontiguitas Spasial: Pinyin tersembunyi) -->
         <div class="flashcard" style="border: 2px solid #e0e6ed; border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" onclick="toggleCardFlip()">
-            <div id="fc-word" style="font-size: 48px; font-weight: bold; color: #2c3e50;">${item.生詞}</div>
+            <div id="fc-word" style="font-size: 48px; font-weight: bold; color: #2c3e50;">${item.生詞 || '[Kosong]'}</div>
             <div id="fc-back" style="display: none; width: 100%; margin-top: 10px;">
-                <div style="font-size: 22px; color: #e67e22; font-weight: 500; margin-bottom: 8px;">${item.拼音}</div>
-                <div style="font-size: 18px; color: #7f8c8d; border-top: 1px dashed #e0e6ed; padding-top: 8px;">${item.定義}</div>
+                <div style="font-size: 22px; color: #e67e22; font-weight: 500; margin-bottom: 8px;">${item.拼音 || '[Kosong]'}</div>
+                <div style="font-size: 18px; color: #7f8c8d; border-top: 1px dashed #e0e6ed; padding-top: 8px;">${item.定義 || '[Kosong]'}</div>
             </div>
             <div style="font-size: 12px; color: #b0bec5; margin-top: 15px;">進度: ${currentIndex + 1} / ${currentList.length}</div>
         </div>
@@ -151,9 +201,9 @@ function renderFlashcardLayout() {
         <button class="btn-primary full" style="margin-top: 10px;" onclick="nextCard()">下一個 (Berikutnya) →</button>
     `;
     
-    document.getElementById('dynamic-quiz-content').innerHTML = html;
-    changeSpeed(currentSpeed); // Mempertahankan opsi kecepatan aktif
-    speakChinese(item.生詞);    // Otomatis putar audio pelafalan (Prinsip Modalitas)
+    targetDiv.innerHTML = html;
+    changeSpeed(currentSpeed); 
+    speakChinese(item.生詞);    
 }
 
 function toggleCardFlip() {
@@ -168,7 +218,6 @@ function nextCard() {
         currentIndex++;
         renderFlashcardLayout();
     } else {
-        // Jika kosakata sudah habis dibaca, munculkan tombol jembatan ke Tahap 2
         document.getElementById('quiz-instruction').innerText = "🎉 Semua kosakata bab ini selesai dipelajari!";
         const nextBtn = document.getElementById('quiz-next-btn');
         nextBtn.style.display = "block";
@@ -177,9 +226,7 @@ function nextCard() {
     }
 }
 
-// ------------------------------------------
-// TAHAP 2: TES KOSAKATA (Generator Pilihan Ganda Otomatis)
-// ------------------------------------------
+// TAHAP 2: TES KOSAKATA PILIHAN GANDA
 function startVocabTest() {
     currentStage = 'vocab-test';
     currentIndex = 0;
@@ -193,13 +240,11 @@ function startVocabTest() {
 }
 
 function renderVocabQuiz() {
-    // Bersihkan kotak teks umpan balik jawaban sebelumnya
     document.getElementById('quiz-feedback').innerHTML = "";
     
     const correctAnswerItem = currentList[currentIndex];
     let options = [correctAnswerItem];
     
-    // PENGAMAN: Mencegah infinite loop jika total data JSON Anda kurang dari 4 kata
     const maxOptions = allData.length >= 4 ? 4 : allData.length;
     let attempts = 0; 
 
@@ -214,7 +259,6 @@ function renderVocabQuiz() {
         }
     }
     
-    // Mengacak posisi urutan opsi tombol jawaban
     options.sort(() => Math.random() - 0.5);
     
     document.getElementById('quiz-instruction').innerText = `請選擇正確的定義 (Pilihlah arti yang tepat untuk kata berikut):`;
@@ -247,7 +291,6 @@ function checkVocabAnswer(selectedWord, correctWord) {
     const feedbackDiv = document.getElementById('quiz-feedback');
     const choiceButtons = document.querySelectorAll('.quiz-choices button');
     
-    // Kunci tombol agar tidak dieksekusi berulang kali oleh siswa
     choiceButtons.forEach(btn => btn.disabled = true);
     
     if (selectedWord === correctWord) {
@@ -286,7 +329,7 @@ function endVocabTestStage() {
     document.getElementById('quiz-instruction').innerText = "🎉 Tahap latihan soal kosakata telah selesai!";
     
     document.getElementById('dynamic-quiz-content').innerHTML = `
-        <div style="background: #e8f4fd; padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #b3e5fc;">
+        <div style="background: #e8f4fd; padding: 25px; border-radius: 166px; text-align: center; border: 1px solid #b3e5fc;">
             <h3 style="color: #0288d1; margin-top: 0;">單元測試結果 (Hasil Latihan)</h3>
             <p style="font-size: 16px; color: #555;">Anda berhasil menjawab benar <strong>${score}</strong> dari <strong>${currentList.length}</strong> lokasi soal.</p>
             <p style="font-size: 24px; font-weight: bold; color: #0288d1; margin: 15px 0;">正確率 (Akurasi): ${accuracy}%</p>
@@ -299,9 +342,7 @@ function endVocabTestStage() {
     nextBtn.onclick = startGrammarStage; 
 }
 
-// ------------------------------------------
-// TAHAP 3: STRUKTUR RUMUS GRAMMAR (Placeholder Gateway)
-// ------------------------------------------
+// TAHAP 3: GRAMMAR PLACEHOLDER
 function startGrammarStage() {
     currentStage = 'grammar';
     document.getElementById('quiz-next-btn').style.display = "none";
@@ -318,7 +359,7 @@ function startGrammarStage() {
 }
 
 // ==========================================
-// 5. AUDIO CORE CONTROL ENGINE (Standardisasi Taiwan zh-TW)
+// 5. AUDIO CORE CONTROL ENGINE (zh-TW)
 // ==========================================
 function changeSpeed(speed) {
     currentSpeed = speed;
@@ -338,16 +379,11 @@ function changeSpeed(speed) {
 
 function speakChinese(text) {
     if ('speechSynthesis' in window) {
-        // Zero-Delay: Memutus paksa semua antrean audio sebelumnya agar responsif
         window.speechSynthesis.cancel(); 
-        
-        // Pembersihan karakter tanda miring jika ada (misal: "你/妳" hanya dibaca "你")
         let cleanText = text.includes('/') ? text.split('/')[0] : text;
-        
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'zh-TW';       // Penguncian aksen regional Taiwan untuk TOCFL
-        utterance.rate = currentSpeed;  // Mengikuti preferensi pengubah kecepatan dinamis
-        
+        utterance.lang = 'zh-TW';       
+        utterance.rate = currentSpeed;  
         window.speechSynthesis.speak(utterance);
     }
 }
