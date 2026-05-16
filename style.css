@@ -1,184 +1,356 @@
-:root { 
-    --primary: #4a90e2; 
-    --success: #4caf50;
-    --bg: #f5f7fa; 
+/* ==========================================================================
+   1. VARIABLES & BASE STYLES (Tema Bersih & Profesional)
+   ========================================================================== */
+:root {
+  --primary: #4a90e2;       /* Biru Utama untuk Fokus */
+  --primary-dark: #357abd;
+  --success: #4caf50;       /* Hijau untuk Jawaban Benar */
+  --error: #f44336;         /* Merah untuk Jawaban Salah */
+  --bg: #f8fafc;            /* Latar Belakang Abu-abu Sangat Terang */
+  --text-main: #2c3e50;
+  --text-muted: #7f8c8d;
+  --border-color: #e2e8f0;
 }
 
-body { 
-    font-family: 'PingFang TC', sans-serif; 
-    background: var(--bg); 
-    margin: 0; 
-    padding: 20px; 
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-.container { 
-    max-width: 600px; 
-    margin: auto; 
-    background: white; 
-    padding: 20px; 
-    border-radius: 16px; 
-    box-shadow: 0 8px 24px rgba(0,0,0,0.05); 
+/* System SPA Management (Sistem Pindah Halaman) */
+.page {
+  display: none;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
-.btn { 
-    display: block; 
-    width: 100%; 
-    padding: 15px; 
-    margin: 10px 0; 
-    border: none; 
-    border-radius: 10px; 
-    background: var(--primary); 
-    color: white; 
-    font-size: 18px; 
-    cursor: pointer; 
-    transition: 0.2s; 
-    font-weight: bold; 
+.page.active {
+  display: block;
 }
 
-.btn:hover { 
-    opacity: 0.9; 
-    transform: translateY(-1px); 
+/* ==========================================================================
+   2. LANDING PAGE STYLE
+   ========================================================================== */
+#page-landing {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  background: white;
 }
 
-.btn-unit { 
-    background: #5c6bc0; 
+#page-landing.active {
+  display: flex;
 }
 
-.back-btn { 
-    background: #78909c; 
-    font-size: 14px; 
-    width: auto; 
-    padding: 6px 18px; 
-    display: inline-block; 
+.landing-header {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 60px;
 }
 
-.card {
-    border: 2px solid #eee; 
-    padding: 20px; 
-    text-align: center; 
-    margin-top: 20px;
-    background: #ffffff;
-    border-radius: 12px;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: bold;
 }
 
-/* 🚀 這是生詞閃卡 (Flashcard) 的翻牌效果設定（這是新加的，必須留著） */
-.flashcard {
-    background: #ffffff;
-    border: 2px solid #e0e6ed;
-    border-radius: 16px;
-    padding: 40px 20px;
-    text-align: center;
-    margin: 25px 0;
-    cursor: pointer;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.04);
-    transition: all 0.3s ease;
+.landing-main {
+  text-align: center;
+  max-width: 600px;
 }
 
-/* --- Tambahan untuk mendukung efek Flip Card 3D asli --- */
-.flashcard-container {
-    perspective: 1000px;
-    margin: 25px 0;
+.landing-main h1 {
+  font-size: 42px;
+  line-height: 1.3;
+  margin-bottom: 20px;
 }
 
-/* Modifikasi .flashcard sebagai pembungkus dalam yang berputar */
-.flashcard-inner {
-    position: relative;
-    width: 100%;
-    min-height: 220px;
-    text-align: center;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
+.landing-main .highlight {
+  color: var(--primary);
 }
 
-/* Ketika di-hover atau ditambahkan kelas 'flipped' lewat JS, kartu akan berbalik */
-.flashcard-container:hover .flashcard-inner,
-.flashcard-inner.flipped {
-    transform: rotateY(180deg);
+/* ==========================================================================
+   3. DASHBOARD & SIDEBAR LAYOUT
+   ========================================================================== */
+#page-dashboard {
+  display: none;
 }
 
-/* Sisi depan dan sisi belakang kartu */
-.flashcard-front, .flashcard-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    border: 2px solid #e0e6ed;
-    border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.04);
-    box-sizing: border-box;
-    padding: 20px;
+#page-dashboard.active {
+  display: flex;
 }
 
-/* Sisi belakang harus diputar 180 derajat dari awal */
-.flashcard-back {
-    transform: rotateY(180deg);
-    background: #fafbfc;
-    border-color: var(--primary);
+.sidebar {
+  width: 260px;
+  background: white;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px;
+  box-sizing: border-box;
 }
 
-.flashcard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(74,144,226,0.12);
-    border-color: var(--primary);
+.sb-logo {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 40px;
 }
 
-.flashcard .word { 
-    font-size: 48px; 
-    font-weight: bold; 
-    color: #2c3e50; 
-    margin-bottom: 10px; 
+.sb-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
 }
 
-.flashcard .pinyin { 
-    font-size: 22px; 
-    color: #e67e22; 
-    margin-bottom: 15px; 
-    font-weight: 500; 
+.sb-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  color: var(--text-main);
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.flashcard .def { 
-    font-size: 20px; 
-    color: #7f8c8d; 
-    border-top: 1px dashed #e0e6ed; 
-    padding-top: 15px; 
-    width: 80%; 
+.sb-link.active, .sb-link:hover {
+  background: #edf2f7;
+  color: var(--primary);
 }
 
-.flashcard-hint { 
-    font-size: 13px; 
-    color: #b0bec5; 
-    margin-top: 20px; 
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
 }
 
-/* 右上角開關與提示框樣式 */
-#hint-toggle { 
-    position: fixed; 
-    top: 15px; 
-    right: 15px; 
-    z-index: 1000; 
-    width: auto; 
-    padding: 10px 15px; 
-    background: #ff9800; 
+.sb-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
 }
 
-.vocab-tooltip { 
-    position: absolute; 
-    display: none; 
-    background: white; 
-    border: 2px solid var(--primary); 
-    padding: 12px; 
-    border-radius: 8px; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.15); 
-    z-index: 2000; 
+.dash-main {
+  flex-grow: 1;
+  padding: 40px;
+  max-width: 800px;
+  box-sizing: border-box;
+}
+
+.dash-topbar {
+  margin-bottom: 30px;
+}
+
+/* ==========================================================================
+   4. BUTTONS & UI COMPONENTS (Fungsional & Konsisten)
+   ========================================================================== */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-outline:hover {
+  background: #edf2f7;
+}
+
+.back-btn {
+  background: #78909c !important;
+  font-size: 14px;
+  padding: 8px 16px;
+  width: auto;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   5. INTERACTIVE QUIZ & FLOW LAYOUT (Inti Aplikasi "Butik")
+   ========================================================================== */
+#page-quiz {
+  background: var(--bg);
+  padding: 20px;
+}
+
+.quiz-header {
+  max-width: 600px;
+  margin: 0 auto 30px auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.quiz-back {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.quiz-progress-wrap {
+  flex-grow: 1;
+  margin: 0 20px;
+}
+
+.quiz-prog-bar {
+  width: 100%;
+  height: 100%;
+  background: #e2e8f0;
+  border-radius: 6px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.quiz-prog-fill {
+  height: 100%;
+  background: var(--primary);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.quiz-body {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+  box-sizing: border-box;
+}
+
+.quiz-q-label {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Kuis Pilihan Ganda Tanpa Distraksi Visual */
+.quiz-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.quiz-choices button {
+  transition: all 0.2s ease !important;
+}
+
+.quiz-choices button:hover:not([disabled]) {
+  border-color: var(--primary) !important;
+  background-color: #f0f7ff !important;
+  transform: translateX(4px);
+}
+
+/* ==========================================================================
+   6. RESULT & EVALUATION PAGE
+   ========================================================================== */
+.result-wrap {
+  max-width: 500px;
+  margin: 80px auto;
+  background: white;
+  padding: 40px 30px;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 15px 45px rgba(0,0,0,0.05);
+}
+
+.result-emoji {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 30px 0;
+}
+
+.rs-card {
+  background: var(--bg);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.rs-num {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.rs-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+.result-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ==========================================================================
+   7. GLOBAL ASSESSMENT TOOLTIP (Reading Scaffolding)
+   ========================================================================== */
+.vocab-tooltip {
+  background: white;
+  border: 2px solid var(--primary);
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(74,144,226,0.15);
+  pointer-events: none; /* Mencegah kedipan kursor */
+  max-width: 250px;
 }
